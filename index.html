@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAVANS AQUA-GUARD</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a1929 0%, #1e3a5f 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212,175,55,0.2);
+        }
+        .logo {
+            font-size: 42px;
+            font-weight: bold;
+            background: linear-gradient(90deg, #D4AF37 0%, #F4D03F 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #4A90E2;
+            font-size: 24px;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(74,144,226,0.5);
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.3);
+            border-radius: 20px;
+            font-size: 13px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.15); }
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .card {
+            background: linear-gradient(135deg, rgba(212,175,55,0.08) 0%, rgba(0,61,130,0.08) 100%);
+            border: 1px solid rgba(212,175,55,0.25);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(212,175,55,0.2);
+        }
+        .card-title {
+            color: #D4AF37;
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-icon {
+            font-size: 22px;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .metric:last-child { border-bottom: none; }
+        .metric-label {
+            color: rgba(255,255,255,0.65);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .metric-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px rgba(212,175,55,0.3);
+        }
+        .temp-big {
+            text-align: center;
+            font-size: 64px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #D4AF37 0%, #F4D03F 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 25px 0;
+            text-shadow: 0 0 20px rgba(212,175,55,0.4);
+        }
+        .alert {
+            background: rgba(239,68,68,0.12);
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .alert:hover {
+            background: rgba(239,68,68,0.18);
+        }
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .alert-type {
+            color: #fca5a5;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        .alert-time {
+            color: rgba(255,255,255,0.4);
+            font-size: 11px;
+        }
+        .alert-message {
+            color: rgba(255,255,255,0.8);
+            font-size: 13px;
+        }
+        .gps-coords {
+            font-family: 'Courier New', monospace;
+            color: #D4AF37;
+            font-size: 18px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        .chart-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+        }
+        canvas {
+            width: 100%;
+            max-width: 100%;
+            height: 250px;
+            border-radius: 10px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255,255,255,0.5);
+            font-size: 14px;
+        }
+        .no-data {
+            text-align: center;
+            padding: 30px;
+            color: rgba(255,255,255,0.4);
+            font-size: 13px;
+        }
+        .last-update {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">⚓ MAVANS</div>
+        <div class="subtitle">AQUA-GUARD</div>
+        <div class="status-badge">
+            <span class="status-dot"></span>
+            <span id="status-text">Connexion en cours...</span>
+        </div>
+    </div>
+
+    <div class="dashboard" id="dashboard">
+        <!-- ACCÉLÉROMÈTRE -->
+        <div class="card">
+            <div class="card-title">
+                <span class="card-icon">📊</span>
+                Accéléromètre
+            </div>
+            <div class="metric">
+                <span class="metric-label">Axe X</span>
+                <span class="metric-value" id="accel-x">-- m/s²</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Axe Y</span>
+                <span class="metric-value" id="accel-y">-- m/s²</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Axe Z</span>
+                <span class="metric-value" id="accel-z">-- m/s²</span>
+            </div>
+            <div class="last-update">
+                Dernière mesure : <span id="accel-time">--</span>
+            </div>
+        </div>
+
+        <!-- GYROSCOPE -->
+        <div class="card">
+            <div class="card-title">
+                <span class="card-icon">🔄</span>
+                Gyroscope
+            </div>
+            <div class="metric">
+                <span class="metric-label">Rotation X</span>
+                <span class="metric-value" id="gyro-x">-- °/s</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Rotation Y</span>
+                <span class="metric-value" id="gyro-y">-- °/s</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Rotation Z</span>
+                <span class="metric-value" id="gyro-z">-- °/s</span>
+            </div>
+        </div>
+
+        <!-- TEMPÉRATURE -->
+        <div class="card">
+            <div class="card-title">
+                <span class="card-icon">🌡️</span>
+                Température
+            </div>
+            <div class="temp-big" id="temp">--°C</div>
+        </div>
+
+        <!-- ALERTES -->
+        <div class="card">
+            <div class="card-title">
+                <span class="card-icon">⚠️</span>
+                Alertes récentes
+            </div>
+            <div id="alerts-container">
+                <div class="loading">Chargement des alertes...</div>
+            </div>
+        </div>
+
+        <!-- LOCALISATION -->
+        <div class="card">
+            <div class="card-title">
+                <span class="card-icon">📍</span>
+                Localisation GPS
+            </div>
+            <div style="text-align:center; margin-top:20px;">
+                <div style="color:rgba(255,255,255,0.6); font-size:13px; margin-bottom:15px;">
+                    Position actuelle
+                </div>
+                <div class="gps-coords" id="gps-lat">Latitude: --°</div>
+                <div class="gps-coords" id="gps-lon">Longitude: --°</div>
+            </div>
+        </div>
+
+        <!-- GRAPHIQUE -->
+        <div class="card" style="grid-column: 1 / -1;">
+            <div class="card-title">
+                <span class="card-icon">📈</span>
+                Historique accéléromètre (dernières 100 mesures)
+            </div>
+            <div class="chart-container">
+                <canvas id="chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== CONFIGURATION SUPABASE ==========
+        // ⚠️ REMPLACE CES VALEURS PAR LES TIENNES
+        const SUPABASE_URL = 'https://TON-PROJET.supabase.co';
+        const SUPABASE_KEY = 'TON_ANON_KEY_ICI';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ========== VARIABLES GLOBALES ==========
+        const canvas = document.getElementById('chart');
+        const ctx = canvas.getContext('2d');
+        let chartData = { x: [], y: [], z: [], timestamps: [] };
+        const maxPoints = 100;
+
+        // ========== INITIALISATION ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 MAVANS AQUA-GUARD - Démarrage...');
+            loadLatestData();
+            loadAlerts();
+            setupRealtimeSubscription();
+            setupAlertsSubscription();
+        });
+
+        // ========== CHARGER DERNIÈRES DONNÉES ==========
+        async function loadLatestData() {
+            try {
+                const { data, error } = await supabase
+                    .from('sensor_data')
+                    .select('*')
+                    .order('timestamp', { ascending: false })
+                    .limit(maxPoints);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    // Inverser pour avoir du plus ancien au plus récent
+                    data.reverse().forEach(record => {
+                        updateChartData(record);
+                    });
+                    
+                    // Afficher la dernière valeur
+                    updateDisplay(data[data.length - 1]);
+                    drawChart();
+                    
+                    document.getElementById('status-text').textContent = 'Système opérationnel';
+                    console.log('✅ Données chargées:', data.length, 'enregistrements');
+                } else {
+                    console.log('⚠️ Aucune donnée disponible');
+                }
+            } catch (error) {
+                console.error('❌ Erreur chargement données:', error);
+                document.getElementById('status-text').textContent = 'Erreur de connexion';
+            }
+        }
+
+        // ========== CHARGER ALERTES ==========
+        async function loadAlerts() {
+            try {
+                const { data, error } = await supabase
+                    .from('alerts')
+                    .select('*')
+                    .eq('resolved', false)
+                    .order('timestamp', { ascending: false })
+                    .limit(10);
+
+                if (error) throw error;
+
+                const container = document.getElementById('alerts-container');
+                container.innerHTML = '';
+
+                if (data && data.length > 0) {
+                    data.forEach(alert => addAlert(alert));
+                } else {
+                    container.innerHTML = '<div class="no-data">Aucune alerte active</div>';
+                }
+            } catch (error) {
+                console.error('❌ Erreur chargement alertes:', error);
+            }
+        }
+
+        // ========== TEMPS RÉEL - DONNÉES CAPTEURS ==========
+        function setupRealtimeSubscription() {
+            supabase
+                .channel('sensor_data_changes')
+                .on('postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'sensor_data' },
+                    (payload) => {
+                        console.log('📡 Nouvelle donnée reçue:', payload.new);
+                        updateDisplay(payload.new);
+                        updateChartData(payload.new);
+                        drawChart();
+                    }
+                )
+                .subscribe((status) => {
+                    console.log('📡 Temps réel capteurs:', status);
+                });
+        }
+
+        // ========== TEMPS RÉEL - ALERTES ==========
+        function setupAlertsSubscription() {
+            supabase
+                .channel('alerts_changes')
+                .on('postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'alerts' },
+                    (payload) => {
+                        console.log('🚨 Nouvelle alerte:', payload.new);
+                        addAlert(payload.new);
+                    }
+                )
+                .subscribe((status) => {
+                    console.log('📡 Temps réel alertes:', status);
+                });
+        }
+
+        // ========== MISE À JOUR AFFICHAGE ==========
+        function updateDisplay(data) {
+            document.getElementById('accel-x').textContent = data.accel_x.toFixed(2) + ' m/s²';
+            document.getElementById('accel-y').textContent = data.accel_y.toFixed(2) + ' m/s²';
+            document.getElementById('accel-z').textContent = data.accel_z.toFixed(2) + ' m/s²';
+            
+            document.getElementById('gyro-x').textContent = data.gyro_x.toFixed(2) + ' °/s';
+            document.getElementById('gyro-y').textContent = data.gyro_y.toFixed(2) + ' °/s';
+            document.getElementById('gyro-z').textContent = data.gyro_z.toFixed(2) + ' °/s';
+            
+            document.getElementById('temp').textContent = data.temperature.toFixed(1) + '°C';
+            
+            if (data.latitude && data.longitude) {
+                document.getElementById('gps-lat').textContent = 'Latitude: ' + data.latitude.toFixed(6) + '°';
+                document.getElementById('gps-lon').textContent = 'Longitude: ' + data.longitude.toFixed(6) + '°';
+            }
+            
+            const time = new Date(data.timestamp).toLocaleTimeString('fr-FR');
+            document.getElementById('accel-time').textContent = time;
+        }
+
+        // ========== AJOUTER ALERTE ==========
+        function addAlert(alert) {
+            const container = document.getElementById('alerts-container');
+            
+            // Supprimer message "Aucune alerte"
+            if (container.querySelector('.no-data')) {
+                container.innerHTML = '';
+            }
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert';
+            
+            const time = new Date(alert.timestamp).toLocaleString('fr-FR');
+            
+            alertDiv.innerHTML = `
+                <div class="alert-header">
+                    <span class="alert-type">${alert.alert_type.replace(/_/g, ' ')}</span>
+                    <span class="alert-time">${time}</span>
+                </div>
+                <div class="alert-message">${alert.message}</div>
+            `;
+            
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            // Garder seulement 10 alertes
+            while (container.children.length > 10) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        // ========== MISE À JOUR GRAPHIQUE ==========
+        function updateChartData(data) {
+            chartData.x.push(data.accel_x);
+            chartData.y.push(data.accel_y);
+            chartData.z.push(data.accel_z);
+            chartData.timestamps.push(new Date(data.timestamp));
+            
+            if (chartData.x.length > maxPoints) {
+                chartData.x.shift();
+                chartData.y.shift();
+                chartData.z.shift();
+                chartData.timestamps.shift();
+            }
+        }
+
+        // ========== DESSINER GRAPHIQUE ==========
+        function drawChart() {
+            const width = canvas.offsetWidth;
+            const height = 250;
+            canvas.width = width;
+            canvas.height = height;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            if (chartData.x.length === 0) return;
+            
+            const padding = 40;
+            const chartWidth = width - 2 * padding;
+            const chartHeight = height - 2 * padding;
+            
+            // Grille
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 6; i++) {
+                const y = padding + (chartHeight / 6) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+            }
+            
+            // Ligne zéro
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 2;
+            const zeroY = padding + chartHeight / 2;
+            ctx.beginPath();
+            ctx.moveTo(padding, zeroY);
+            ctx.lineTo(width - padding, zeroY);
+            ctx.stroke();
+            
+            // Courbes
+            const colors = {
+                x: '#ef4444',
+                y: '#10b981',
+                z: '#3b82f6'
+            };
+            
+            ['x', 'y', 'z'].forEach(axis => {
+                if (chartData[axis].length < 2) return;
+                
+                ctx.strokeStyle = colors[axis];
+                ctx.lineWidth = 2.5;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = colors[axis];
+                ctx.beginPath();
+                
+                chartData[axis].forEach((value, index) => {
+                    const x = padding + (chartWidth / (maxPoints - 1)) * index;
+                    const normalizedValue = Math.max(-20, Math.min(20, value));
+                    const y = zeroY - (normalizedValue / 20) * (chartHeight / 2);
+                    
+                    if (index === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+                
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            });
+            
+            // Légende
+            ctx.font = 'bold 12px Arial';
+            let legendX = 15;
+            ['x', 'y', 'z'].forEach(axis => {
+                ctx.fillStyle = colors[axis];
+                ctx.fillText(axis.toUpperCase(), legendX, 20);
+                legendX += 30;
+            });
+        }
+
+        // ========== REDIMENSIONNEMENT ==========
+        window.addEventListener('resize', () => {
+            drawChart();
+        });
+    </script>
+</body>
+</html>
