@@ -4,414 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MAVANS AQUA-GUARD - Station Balnéaire</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0a1929 0%, #1e3a5f 100%);
-            min-height: 100vh;
-            padding: 15px;
-            color: #fff;
-        }
-
-        /* ========== HEADER ========== */
-        .header {
-            text-align: center;
-            margin-bottom: 25px;
-            padding: 30px;
-            background: linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(0,61,130,0.15) 100%);
-            border-radius: 20px;
-            backdrop-filter: blur(15px);
-            border: 2px solid rgba(212,175,55,0.3);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 12px;
-        }
-
-        .logo {
-            font-size: 48px;
-            font-weight: 900;
-            background: linear-gradient(90deg, #D4AF37 0%, #F4D03F 50%, #D4AF37 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: 2px;
-        }
-
-        .subtitle {
-            color: #4A90E2;
-            font-size: 26px;
-            font-weight: 700;
-            text-shadow: 0 0 15px rgba(74,144,226,0.6);
-            letter-spacing: 3px;
-        }
-
-        .status-bar {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 25px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: rgba(16,185,129,0.12);
-            border: 1px solid rgba(16,185,129,0.35);
-            border-radius: 25px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            background: #10b981;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(16,185,129,0.7); }
-            50% { opacity: 0.7; transform: scale(1.1); box-shadow: 0 0 0 6px rgba(16,185,129,0); }
-        }
-
-        /* ========== DASHBOARD GRID ========== */
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
-            max-width: 1800px;
-            margin: 0 auto;
-        }
-
-        /* ========== CARDS ========== */
-        .card {
-            background: linear-gradient(135deg, rgba(212,175,55,0.08) 0%, rgba(0,61,130,0.08) 100%);
-            border: 1px solid rgba(212,175,55,0.25);
-            border-radius: 18px;
-            padding: 25px;
-            backdrop-filter: blur(12px);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #D4AF37 0%, #F4D03F 100%);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 15px 40px rgba(212,175,55,0.25);
-            border-color: rgba(212,175,55,0.5);
-        }
-
-        .card:hover::before {
-            opacity: 1;
-        }
-
-        .card-title {
-            color: #D4AF37;
-            font-size: 15px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .card-icon {
-            font-size: 24px;
-            filter: drop-shadow(0 0 8px rgba(212,175,55,0.5));
-        }
-
-        /* ========== METRICS ========== */
-        .metric {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-        }
-
-        .metric:last-child {
-            border-bottom: none;
-        }
-
-        .metric-label {
-            color: rgba(255,255,255,0.7);
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .metric-value {
-            font-size: 20px;
-            font-weight: 800;
-            color: #fff;
-            font-family: 'Courier New', monospace;
-            text-shadow: 0 0 12px rgba(212,175,55,0.4);
-        }
-
-        /* ========== BIG DISPLAYS ========== */
-        .big-display {
-            text-align: center;
-            padding: 30px 20px;
-        }
-
-        .big-value {
-            font-size: 72px;
-            font-weight: 900;
-            background: linear-gradient(135deg, #D4AF37 0%, #F4D03F 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 15px 0;
-            filter: drop-shadow(0 0 20px rgba(212,175,55,0.5));
-        }
-
-        .big-label {
-            color: rgba(255,255,255,0.6);
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-weight: 600;
-        }
-
-        /* ========== BATTERY INDICATOR ========== */
-        .battery-container {
-            position: relative;
-            margin: 20px auto;
-            width: 80px;
-            height: 40px;
-        }
-
-        .battery-body {
-            width: 70px;
-            height: 40px;
-            border: 3px solid #D4AF37;
-            border-radius: 6px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .battery-level {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 0%;
-            background: linear-gradient(to top, #10b981, #34d399);
-            transition: height 0.5s ease, background 0.3s;
-        }
-
-        .battery-level.low {
-            background: linear-gradient(to top, #ef4444, #f87171);
-        }
-
-        .battery-level.medium {
-            background: linear-gradient(to top, #f59e0b, #fbbf24);
-        }
-
-        .battery-tip {
-            position: absolute;
-            right: -8px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 5px;
-            height: 16px;
-            background: #D4AF37;
-            border-radius: 0 3px 3px 0;
-        }
-
-        .battery-percentage {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-weight: 900;
-            font-size: 16px;
-            z-index: 10;
-            text-shadow: 0 0 4px rgba(0,0,0,0.8);
-        }
-
-        /* ========== WATER QUALITY GAUGE ========== */
-        .quality-gauge {
-            position: relative;
-            width: 150px;
-            height: 150px;
-            margin: 20px auto;
-        }
-
-        .gauge-bg {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: conic-gradient(
-                from 0deg,
-                #10b981 0deg 120deg,
-                #f59e0b 120deg 240deg,
-                #ef4444 240deg 360deg
-            );
-            position: relative;
-        }
-
-        .gauge-inner {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80%;
-            height: 80%;
-            background: #1e3a5f;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-
-        .gauge-value {
-            font-size: 32px;
-            font-weight: 900;
-            color: #D4AF37;
-        }
-
-        .gauge-label {
-            font-size: 11px;
-            color: rgba(255,255,255,0.6);
-            margin-top: 5px;
-        }
-
-        /* ========== ALERTS ========== */
-        .alert {
-            background: rgba(239,68,68,0.12);
-            border-left: 4px solid #ef4444;
-            padding: 16px;
-            margin-bottom: 12px;
-            border-radius: 10px;
-            transition: all 0.3s;
-        }
-
-        .alert:hover {
-            background: rgba(239,68,68,0.18);
-            transform: translateX(5px);
-        }
-
-        .alert-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .alert-type {
-            color: #fca5a5;
-            font-weight: 700;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .alert-time {
-            color: rgba(255,255,255,0.4);
-            font-size: 11px;
-        }
-
-        .alert-message {
-            color: rgba(255,255,255,0.85);
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        /* ========== GPS COORDINATES ========== */
-        .gps-coords {
-            font-family: 'Courier New', monospace;
-            color: #D4AF37;
-            font-size: 20px;
-            margin: 12px 0;
-            text-align: center;
-            font-weight: 700;
-        }
-
-        /* ========== CHART ========== */
-        .chart-container {
-            margin-top: 25px;
-            padding: 25px;
-            background: rgba(0,0,0,0.25);
-            border-radius: 15px;
-        }
-
-        canvas {
-            width: 100%;
-            max-width: 100%;
-            height: 280px;
-            border-radius: 12px;
-        }
-
-        /* ========== LOADING & NO DATA ========== */
-        .loading, .no-data {
-            text-align: center;
-            padding: 40px;
-            color: rgba(255,255,255,0.5);
-            font-size: 14px;
-        }
-
-        .last-update {
-            text-align: center;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            color: rgba(255,255,255,0.5);
-            font-size: 12px;
-        }
-
-        /* ========== RESPONSIVE ========== */
-        @media (max-width: 768px) {
-            .logo { font-size: 36px; }
-            .subtitle { font-size: 20px; }
-            .big-value { font-size: 56px; }
-            .dashboard { grid-template-columns: 1fr; }
-        }
-    </style>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <!-- HEADER -->
     <div class="header">
         <div class="logo-container">
             <div class="logo">⚓ MAVANS</div>
         </div>
         <div class="subtitle">AQUA-GUARD</div>
-        <div style="margin-top: 8px; font-size: 13px; color: rgba(255,255,255,0.5); letter-spacing: 1px;">
-            SYSTÈME DE SURVEILLANCE BALNÉAIRE
-        </div>
+        <div class="system-label">SYSTÈME DE SURVEILLANCE BALNÉAIRE</div>
         <div class="status-bar">
             <div class="status-badge">
                 <span class="status-dot"></span>
                 <span id="status-text">Connexion en cours...</span>
             </div>
-            <div class="status-badge" style="background: rgba(212,175,55,0.12); border-color: rgba(212,175,55,0.35);">
-                <span style="color: #D4AF37;">📡</span>
+            <div class="status-badge gold">
+                <span>📡</span>
                 Station: <strong>Plage Nord 01</strong>
             </div>
         </div>
@@ -419,13 +30,10 @@
 
     <!-- DASHBOARD -->
     <div class="dashboard">
-        
+
         <!-- BATTERIE -->
         <div class="card">
-            <div class="card-title">
-                <span class="card-icon">🔋</span>
-                Niveau de batterie
-            </div>
+            <div class="card-title"><span class="card-icon">🔋</span> Niveau de batterie</div>
             <div class="big-display">
                 <div class="battery-container">
                     <div class="battery-body">
@@ -441,10 +49,7 @@
 
         <!-- TEMPÉRATURE EAU -->
         <div class="card">
-            <div class="card-title">
-                <span class="card-icon">🌊</span>
-                Température de l'eau
-            </div>
+            <div class="card-title"><span class="card-icon">🌊</span> Température de l'eau</div>
             <div class="big-display">
                 <div class="big-label">Thermomètre immersible</div>
                 <div class="big-value" id="water-temp">--°C</div>
@@ -453,10 +58,7 @@
 
         <!-- CONDUCTIVITÉ -->
         <div class="card">
-            <div class="card-title">
-                <span class="card-icon">⚡</span>
-                Conductivité électrique
-            </div>
+            <div class="card-title"><span class="card-icon">⚡</span> Conductivité électrique</div>
             <div class="metric">
                 <span class="metric-label">Conductivité (EC)</span>
                 <span class="metric-value" id="conductivity">-- µS/cm</span>
@@ -477,10 +79,7 @@
 
         <!-- HUMIDITÉ -->
         <div class="card">
-            <div class="card-title">
-                <span class="card-icon">💧</span>
-                Humidité capteur
-            </div>
+            <div class="card-title"><span class="card-icon">💧</span> Humidité capteur</div>
             <div class="big-display">
                 <div class="big-label">Humidité relative</div>
                 <div class="big-value" id="humidity">--%</div>
@@ -489,10 +88,7 @@
 
         <!-- TEMPÉRATURE AIR -->
         <div class="card">
-            <div class="card-title">
-                <span class="card-icon">🌡️</span>
-                Température ambiante
-            </div>
+            <div class="card-title"><span class="card-icon">🌡️</span> Température ambiante</div>
             <div class="big-display">
                 <div class="big-label">Capteur IMU</div>
                 <div class="big-value" id="temp">--°C</div>
@@ -501,10 +97,7 @@
 
         <!-- ACCÉLÉROMÈTRE -->
         <div class="card">
-            <div class="card-title">
-                <span class="card-icon">📊</span>
-                Accéléromètre
-            </div>
+            <div class="card-title"><span class="card-icon">📊</span> Accéléromètre</div>
             <div class="metric">
                 <span class="metric-label">Axe X</span>
                 <span class="metric-value" id="accel-x">-- m/s²</span>
@@ -517,17 +110,12 @@
                 <span class="metric-label">Axe Z</span>
                 <span class="metric-value" id="accel-z">-- m/s²</span>
             </div>
-            <div class="last-update">
-                Dernière mesure : <span id="accel-time">--</span>
-            </div>
+            <div class="last-update">Dernière mesure : <span id="accel-time">--</span></div>
         </div>
 
         <!-- GYROSCOPE -->
         <div class="card">
-            <div class="card-title">
-                <span class="card-icon">🔄</span>
-                Gyroscope
-            </div>
+            <div class="card-title"><span class="card-icon">🔄</span> Gyroscope</div>
             <div class="metric">
                 <span class="metric-label">Rotation X</span>
                 <span class="metric-value" id="gyro-x">-- °/s</span>
@@ -544,36 +132,25 @@
 
         <!-- LOCALISATION -->
         <div class="card">
-            <div class="card-title">
-                <span class="card-icon">📍</span>
-                Localisation GPS
-            </div>
-            <div style="text-align:center; margin-top:20px;">
-                <div style="color:rgba(255,255,255,0.6); font-size:13px; margin-bottom:15px; text-transform: uppercase; letter-spacing: 1px;">
-                    Position actuelle
-                </div>
+            <div class="card-title"><span class="card-icon">📍</span> Localisation GPS</div>
+            <div class="gps-block">
+                <div class="gps-sublabel">Position actuelle</div>
                 <div class="gps-coords" id="gps-lat">Latitude: --°</div>
                 <div class="gps-coords" id="gps-lon">Longitude: --°</div>
             </div>
         </div>
 
         <!-- ALERTES -->
-        <div class="card" style="grid-column: 1 / -1;">
-            <div class="card-title">
-                <span class="card-icon">⚠️</span>
-                Alertes système
-            </div>
+        <div class="card full-width">
+            <div class="card-title"><span class="card-icon">⚠️</span> Alertes système</div>
             <div id="alerts-container">
                 <div class="loading">Chargement des alertes...</div>
             </div>
         </div>
 
         <!-- GRAPHIQUE -->
-        <div class="card" style="grid-column: 1 / -1;">
-            <div class="card-title">
-                <span class="card-icon">📈</span>
-                Historique accéléromètre (100 dernières mesures)
-            </div>
+        <div class="card full-width">
+            <div class="card-title"><span class="card-icon">📈</span> Historique accéléromètre (100 dernières mesures)</div>
             <div class="chart-container">
                 <canvas id="chart"></canvas>
             </div>
@@ -581,290 +158,6 @@
 
     </div>
 
-    <script>
-        // ========== CONFIGURATION SUPABASE ==========
-        // ⚠️ REMPLACE PAR TES VRAIES VALEURS
-        const SUPABASE_URL = 'https://fhauqbpgrwunmzzeqylj.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_UGdWt_CWd-jPWRj0_vegKA_gAIbNKb_';
-        
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // ========== VARIABLES GLOBALES ==========
-        const canvas = document.getElementById('chart');
-        const ctx = canvas.getContext('2d');
-        let chartData = { x: [], y: [], z: [], timestamps: [] };
-        const maxPoints = 100;
-
-        // ========== INITIALISATION ==========
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 MAVANS AQUA-GUARD - Système démarré');
-            loadLatestData();
-            loadAlerts();
-            setupRealtimeSubscription();
-            setupAlertsSubscription();
-        });
-
-        // ========== CHARGER DERNIÈRES DONNÉES ==========
-        async function loadLatestData() {
-            try {
-                const { data, error } = await supabase
-                    .from('sensor_data')
-                    .select('*')
-                    .order('timestamp', { ascending: false })
-                    .limit(maxPoints);
-
-                if (error) throw error;
-
-                if (data && data.length > 0) {
-                    data.reverse().forEach(record => updateChartData(record));
-                    updateDisplay(data[data.length - 1]);
-                    drawChart();
-                    document.getElementById('status-text').textContent = 'Système opérationnel';
-                    console.log('✅ Données chargées:', data.length, 'enregistrements');
-                }
-            } catch (error) {
-                console.error('❌ Erreur:', error);
-                document.getElementById('status-text').textContent = 'Erreur de connexion';
-            }
-        }
-
-        // ========== CHARGER ALERTES ==========
-        async function loadAlerts() {
-            try {
-                const { data, error } = await supabase
-                    .from('alerts')
-                    .select('*')
-                    .eq('resolved', false)
-                    .order('timestamp', { ascending: false })
-                    .limit(10);
-
-                if (error) throw error;
-
-                const container = document.getElementById('alerts-container');
-                container.innerHTML = '';
-
-                if (data && data.length > 0) {
-                    data.forEach(alert => addAlert(alert));
-                } else {
-                    container.innerHTML = '<div class="no-data">✅ Aucune alerte active</div>';
-                }
-            } catch (error) {
-                console.error('❌ Erreur alertes:', error);
-            }
-        }
-
-        // ========== TEMPS RÉEL - DONNÉES ==========
-        function setupRealtimeSubscription() {
-            supabase
-                .channel('sensor_data_changes')
-                .on('postgres_changes',
-                    { event: 'INSERT', schema: 'public', table: 'sensor_data' },
-                    (payload) => {
-                        console.log('📡 Nouvelle donnée:', payload.new);
-                        updateDisplay(payload.new);
-                        updateChartData(payload.new);
-                        drawChart();
-                    }
-                )
-                .subscribe();
-        }
-
-        // ========== TEMPS RÉEL - ALERTES ==========
-        function setupAlertsSubscription() {
-            supabase
-                .channel('alerts_changes')
-                .on('postgres_changes',
-                    { event: 'INSERT', schema: 'public', table: 'alerts' },
-                    (payload) => {
-                        console.log('🚨 Nouvelle alerte:', payload.new);
-                        addAlert(payload.new);
-                    }
-                )
-                .subscribe();
-        }
-
-        // ========== MISE À JOUR AFFICHAGE ==========
-        function updateDisplay(data) {
-            // Accéléromètre
-            document.getElementById('accel-x').textContent = data.accel_x.toFixed(2) + ' m/s²';
-            document.getElementById('accel-y').textContent = data.accel_y.toFixed(2) + ' m/s²';
-            document.getElementById('accel-z').textContent = data.accel_z.toFixed(2) + ' m/s²';
-            
-            // Gyroscope
-            document.getElementById('gyro-x').textContent = data.gyro_x.toFixed(2) + ' °/s';
-            document.getElementById('gyro-y').textContent = data.gyro_y.toFixed(2) + ' °/s';
-            document.getElementById('gyro-z').textContent = data.gyro_z.toFixed(2) + ' °/s';
-            
-            // Températures
-            document.getElementById('temp').textContent = data.temperature.toFixed(1) + '°C';
-            if (data.water_temperature) {
-                document.getElementById('water-temp').textContent = data.water_temperature.toFixed(1) + '°C';
-            }
-            
-            // Batterie
-            if (data.battery_level !== null && data.battery_level !== undefined) {
-                const battery = data.battery_level;
-                document.getElementById('battery-value').textContent = battery.toFixed(1) + '%';
-                document.getElementById('battery-text').textContent = battery.toFixed(0) + '%';
-                
-                const batteryBar = document.getElementById('battery-bar');
-                batteryBar.style.height = battery + '%';
-                
-                batteryBar.classList.remove('low', 'medium');
-                if (battery < 20) {
-                    batteryBar.classList.add('low');
-                } else if (battery < 50) {
-                    batteryBar.classList.add('medium');
-                }
-            }
-            
-            // Humidité
-            if (data.humidity !== null && data.humidity !== undefined) {
-                document.getElementById('humidity').textContent = data.humidity.toFixed(1) + '%';
-            }
-            
-            // Conductivité et TDS
-            if (data.conductivity !== null && data.conductivity !== undefined) {
-                document.getElementById('conductivity').textContent = data.conductivity.toFixed(1) + ' µS/cm';
-            }
-            if (data.tds !== null && data.tds !== undefined) {
-                document.getElementById('tds').textContent = data.tds.toFixed(1) + ' ppm';
-                
-                // Qualité de l'eau basée sur TDS
-                let quality = 'Excellent';
-                if (data.tds > 500) quality = 'Moyen';
-                if (data.tds > 1000) quality = 'Mauvais';
-                document.getElementById('water-quality').textContent = quality;
-            }
-            
-            // GPS
-            if (data.latitude && data.longitude) {
-                document.getElementById('gps-lat').textContent = 'Latitude: ' + data.latitude.toFixed(6) + '°';
-                document.getElementById('gps-lon').textContent = 'Longitude: ' + data.longitude.toFixed(6) + '°';
-            }
-            
-            // Timestamp
-            const time = new Date(data.timestamp).toLocaleTimeString('fr-FR');
-            document.getElementById('accel-time').textContent = time;
-        }
-
-        // ========== AJOUTER ALERTE ==========
-        function addAlert(alert) {
-            const container = document.getElementById('alerts-container');
-            
-            if (container.querySelector('.no-data')) {
-                container.innerHTML = '';
-            }
-            
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert';
-            
-            const time = new Date(alert.timestamp).toLocaleString('fr-FR');
-            
-            alertDiv.innerHTML = `
-                <div class="alert-header">
-                    <span class="alert-type">${alert.alert_type.replace(/_/g, ' ')}</span>
-                    <span class="alert-time">${time}</span>
-                </div>
-                <div class="alert-message">${alert.message}</div>
-            `;
-            
-            container.insertBefore(alertDiv, container.firstChild);
-            
-            while (container.children.length > 10) {
-                container.removeChild(container.lastChild);
-            }
-        }
-
-        // ========== GRAPHIQUE ==========
-        function updateChartData(data) {
-            chartData.x.push(data.accel_x);
-            chartData.y.push(data.accel_y);
-            chartData.z.push(data.accel_z);
-            chartData.timestamps.push(new Date(data.timestamp));
-            
-            if (chartData.x.length > maxPoints) {
-                chartData.x.shift();
-                chartData.y.shift();
-                chartData.z.shift();
-                chartData.timestamps.shift();
-            }
-        }
-
-        function drawChart() {
-            const width = canvas.offsetWidth;
-            const height = 280;
-            canvas.width = width;
-            canvas.height = height;
-            
-            ctx.clearRect(0, 0, width, height);
-            
-            if (chartData.x.length === 0) return;
-            
-            const padding = 45;
-            const chartWidth = width - 2 * padding;
-            const chartHeight = height - 2 * padding;
-            
-            // Grille
-            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-            ctx.lineWidth = 1;
-            for (let i = 0; i <= 8; i++) {
-                const y = padding + (chartHeight / 8) * i;
-                ctx.beginPath();
-                ctx.moveTo(padding, y);
-                ctx.lineTo(width - padding, y);
-                ctx.stroke();
-            }
-            
-            // Ligne zéro
-            ctx.strokeStyle = 'rgba(212,175,55,0.3)';
-            ctx.lineWidth = 2;
-            const zeroY = padding + chartHeight / 2;
-            ctx.beginPath();
-            ctx.moveTo(padding, zeroY);
-            ctx.lineTo(width - padding, zeroY);
-            ctx.stroke();
-            
-            // Courbes
-            const colors = { x: '#ef4444', y: '#10b981', z: '#3b82f6' };
-            
-            ['x', 'y', 'z'].forEach(axis => {
-                if (chartData[axis].length < 2) return;
-                
-                ctx.strokeStyle = colors[axis];
-                ctx.lineWidth = 3;
-                ctx.shadowBlur = 12;
-                ctx.shadowColor = colors[axis];
-                ctx.beginPath();
-                
-                chartData[axis].forEach((value, index) => {
-                    const x = padding + (chartWidth / (maxPoints - 1)) * index;
-                    const normalizedValue = Math.max(-20, Math.min(20, value));
-                    const y = zeroY - (normalizedValue / 20) * (chartHeight / 2);
-                    
-                    if (index === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                });
-                
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-            });
-            
-            // Légende
-            ctx.font = 'bold 14px Arial';
-            let legendX = 15;
-            ['x', 'y', 'z'].forEach(axis => {
-                ctx.fillStyle = colors[axis];
-                ctx.fillText(axis.toUpperCase(), legendX, 25);
-                legendX += 35;
-            });
-        }
-
-        // Redimensionnement
-        window.addEventListener('resize', drawChart);
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>
