@@ -9,6 +9,8 @@
 </head>
 <body>
 
+    <a href="client.html" class="nav-btn">👤 Vue Client</a>
+
     <!-- HEADER -->
     <div class="header">
         <div class="logo-container">
@@ -51,8 +53,25 @@
         <div class="card">
             <div class="card-title"><span class="card-icon">🌊</span> Température de l'eau</div>
             <div class="big-display">
-                <div class="big-label">Thermomètre immersible</div>
+                <div class="big-label">Thermomètre immersible DS18B20</div>
                 <div class="big-value" id="water-temp">--°C</div>
+            </div>
+        </div>
+
+        <!-- pH DE L'EAU -->
+        <div class="card">
+            <div class="card-title"><span class="card-icon">🧪</span> pH de l'eau</div>
+            <div class="big-display">
+                <div class="big-label">Sonde PH4502C</div>
+                <div class="big-value" id="ph">--</div>
+                <div class="ph-scale-bar">
+                    <div class="ph-cursor" id="ph-cursor"></div>
+                </div>
+                <div class="ph-scale-labels">
+                    <span>0</span><span>2</span><span>4</span><span>6</span>
+                    <span>7</span><span>8</span><span>10</span><span>12</span><span>14</span>
+                </div>
+                <div class="ph-status-label" id="ph-status">--</div>
             </div>
         </div>
 
@@ -81,7 +100,7 @@
         <div class="card">
             <div class="card-title"><span class="card-icon">💧</span> Humidité capteur</div>
             <div class="big-display">
-                <div class="big-label">Humidité relative</div>
+                <div class="big-label">Capteur AM2302</div>
                 <div class="big-value" id="humidity">--%</div>
             </div>
         </div>
@@ -90,7 +109,7 @@
         <div class="card">
             <div class="card-title"><span class="card-icon">🌡️</span> Température ambiante</div>
             <div class="big-display">
-                <div class="big-label">Capteur IMU</div>
+                <div class="big-label">Capteur IMU (MPU6050)</div>
                 <div class="big-value" id="temp">--°C</div>
             </div>
         </div>
@@ -130,7 +149,7 @@
             </div>
         </div>
 
-        <!-- LOCALISATION -->
+        <!-- LOCALISATION GPS -->
         <div class="card">
             <div class="card-title"><span class="card-icon">📍</span> Localisation GPS</div>
             <div class="gps-block">
