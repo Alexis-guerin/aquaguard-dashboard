@@ -1,8 +1,6 @@
 // ===== CONFIGURATION SUPABASE =====
 const SUPABASE_URL = 'https://fhauqbpgrwunmzzeqylj.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_UGdWt_CWd-jPWRj0_vegKA_gAIbNKb_';
-
-// "supabaseClient" pour éviter le conflit avec window.supabase
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ===== GRAPHIQUE =====
@@ -114,23 +112,36 @@ function updateDisplay(d) {
     // Température air
     document.getElementById('temp').textContent = d.temperature.toFixed(1) + '°C';
 
-    // Température eau
+    // Température eau (DS18B20)
     if (d.water_temperature != null)
         document.getElementById('water-temp').textContent = d.water_temperature.toFixed(1) + '°C';
+
+    // pH (PH4502C)
+    if (d.ph != null) {
+        const ph = d.ph;
+        document.getElementById('ph').textContent = ph.toFixed(1);
+        document.getElementById('ph-cursor').style.left = ((ph / 14) * 100) + '%';
+        const s = document.getElementById('ph-status');
+        if      (ph < 6.5)               s.textContent = '⚠️ Eau acide';
+        else if (ph >= 7.8 && ph <= 8.3) s.textContent = '✅ Normal (eau de mer)';
+        else if (ph > 8.3 && ph <= 9)    s.textContent = '⚠️ Légèrement basique';
+        else if (ph > 9)                  s.textContent = '🚨 Très basique';
+        else                              s.textContent = '✅ Acceptable';
+    }
 
     // Batterie
     if (d.battery_level != null) {
         const b = d.battery_level;
         document.getElementById('battery-value').textContent = b.toFixed(1) + '%';
-        document.getElementById('battery-text').textContent = b.toFixed(0) + '%';
+        document.getElementById('battery-text').textContent  = b.toFixed(0) + '%';
         const bar = document.getElementById('battery-bar');
         bar.style.height = b + '%';
         bar.classList.remove('low', 'medium');
-        if (b < 20)      bar.classList.add('low');
+        if      (b < 20) bar.classList.add('low');
         else if (b < 50) bar.classList.add('medium');
     }
 
-    // Humidité
+    // Humidité (AM2302)
     if (d.humidity != null)
         document.getElementById('humidity').textContent = d.humidity.toFixed(1) + '%';
 
@@ -195,20 +206,20 @@ function updateChartData(d) {
 function drawChart() {
     const w = canvas.offsetWidth;
     const h = 280;
-    canvas.width = w;
+    canvas.width  = w;
     canvas.height = h;
     ctx.clearRect(0, 0, w, h);
 
     if (chartData.x.length === 0) return;
 
-    const pad = 45;
-    const cw = w - 2 * pad;
-    const ch = h - 2 * pad;
+    const pad  = 45;
+    const cw   = w - 2 * pad;
+    const ch   = h - 2 * pad;
     const zeroY = pad + ch / 2;
 
     // Grille
     ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-    ctx.lineWidth = 1;
+    ctx.lineWidth   = 1;
     for (let i = 0; i <= 8; i++) {
         const y = pad + (ch / 8) * i;
         ctx.beginPath();
@@ -219,7 +230,7 @@ function drawChart() {
 
     // Ligne zéro
     ctx.strokeStyle = 'rgba(212,175,55,0.3)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth   = 2;
     ctx.beginPath();
     ctx.moveTo(pad, zeroY);
     ctx.lineTo(w - pad, zeroY);
@@ -231,15 +242,15 @@ function drawChart() {
     ['x', 'y', 'z'].forEach(axis => {
         if (chartData[axis].length < 2) return;
         ctx.strokeStyle = colors[axis];
-        ctx.lineWidth = 3;
-        ctx.shadowBlur = 12;
+        ctx.lineWidth   = 3;
+        ctx.shadowBlur  = 12;
         ctx.shadowColor = colors[axis];
         ctx.beginPath();
 
         chartData[axis].forEach((val, i) => {
-            const x = pad + (cw / (MAX_POINTS - 1)) * i;
+            const x    = pad + (cw / (MAX_POINTS - 1)) * i;
             const norm = Math.max(-20, Math.min(20, val));
-            const y = zeroY - (norm / 20) * (ch / 2);
+            const y    = zeroY - (norm / 20) * (ch / 2);
             i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         });
 
