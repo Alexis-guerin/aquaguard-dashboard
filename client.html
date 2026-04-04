@@ -9,17 +9,21 @@
 </head>
 <body>
 
+    <!-- NAVIGATION -->
     <div class="nav-bar">
-        <a href="index.html" class="nav-btn">🔧 Vue Expert</a>
+        <div class="nav-left">
+            <a href="index.html" class="nav-btn">🔧 Vue Expert</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle" id="theme-toggle" title="Changer le thème">🌙</button>
+        </div>
     </div>
 
     <!-- HEADER -->
     <div class="header">
-        <div class="logo-container">
-            <div class="logo">⚓ MAVANS</div>
-        </div>
+        <div class="logo">⚓ MAVANS</div>
         <div class="subtitle">AQUA-GUARD</div>
-        <div class="system-label">INFORMATIONS PLAGE EN TEMPS RÉEL</div>
+        <div class="system-label">Informations plage en temps réel</div>
         <div class="status-bar">
             <div class="status-badge">
                 <span class="status-dot"></span>
@@ -29,6 +33,7 @@
         </div>
     </div>
 
+    <!-- DASHBOARD CLIENT -->
     <div class="dashboard">
 
         <!-- TEMPÉRATURE EAU -->
@@ -46,14 +51,13 @@
         <div class="card">
             <div class="card-title"><span class="card-icon">🧪</span> pH de l'eau</div>
             <div class="big-display">
-                <div class="big-label">Sonde PH4502C</div>
+                <div class="big-label">Qualité de l'eau</div>
                 <div class="big-value" id="ph-display">--</div>
                 <div class="ph-scale-bar">
                     <div class="ph-cursor" id="ph-cursor"></div>
                 </div>
                 <div class="ph-scale-labels">
-                    <span>0</span><span>2</span><span>4</span><span>6</span>
-                    <span>7</span><span>8</span><span>10</span><span>12</span><span>14</span>
+                    <span>0</span><span>4</span><span>7</span><span>10</span><span>14</span>
                 </div>
                 <div class="ph-status-label">Plage normale eau de mer : 7.8 – 8.3</div>
                 <span class="status-pill pill-good" id="ph-status">--</span>
@@ -73,7 +77,7 @@
                     <div class="gps-val" id="gps-lon">--</div>
                 </div>
             </div>
-            <div style="text-align:center">
+            <div class="text-center mt-2">
                 <a id="maps-link" href="#" target="_blank" class="gps-link">🗺️ Voir sur Google Maps</a>
             </div>
         </div>
@@ -81,7 +85,7 @@
         <!-- ALERTES -->
         <div class="card full-width">
             <div class="card-title"><span class="card-icon">⚠️</span> Alertes en cours</div>
-            <div id="alerts-box">
+            <div id="alerts-container">
                 <div class="no-alert">✅ Aucune alerte — Conditions normales</div>
             </div>
         </div>
@@ -89,10 +93,28 @@
     </div>
 
     <script>
+        // ===== CONFIG =====
         const SUPABASE_URL = 'https://fhauqbpgrwunmzzeqylj.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_UGdWt_CWd-jPWRj0_vegKA_gAIbNKb_';
+        const SUPABASE_KEY = 'VOTRE_CLE_SUPABASE_ICI';
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // ===== THÈME =====
+        let theme = localStorage.getItem('theme') || 'dark';
+        
+        function applyTheme(t) {
+            document.documentElement.setAttribute('data-theme', t);
+            localStorage.setItem('theme', t);
+            document.getElementById('theme-toggle').textContent = t === 'dark' ? '🌙' : '☀️';
+        }
+        
+        applyTheme(theme);
+        
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            theme = theme === 'dark' ? 'light' : 'dark';
+            applyTheme(theme);
+        });
+
+        // ===== INIT =====
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
             loadAlerts();
@@ -100,6 +122,7 @@
             subscribeAlerts();
         });
 
+        // ===== CHARGEMENT =====
         async function loadData() {
             const { data, error } = await sb
                 .from('sensor_data')
@@ -124,6 +147,7 @@
             if (!error) renderAlerts(data);
         }
 
+        // ===== TEMPS RÉEL =====
         function subscribeData() {
             sb.channel('client_data')
                 .on('postgres_changes',
@@ -140,15 +164,23 @@
                 .subscribe();
         }
 
+        // ===== AFFICHAGE =====
         function render(d) {
-            // Temp eau
+            // Température eau
             if (d.water_temperature != null) {
                 document.getElementById('water-temp').textContent = d.water_temperature.toFixed(1) + '°C';
                 const s = document.getElementById('water-temp-status');
                 const t = d.water_temperature;
-                if      (t < 15)  { s.textContent = '🥶 Froide';   s.className = 'status-pill pill-warning'; }
-                else if (t <= 28) { s.textContent = '✅ Agréable'; s.className = 'status-pill pill-good'; }
-                else              { s.textContent = '🔥 Chaude';   s.className = 'status-pill pill-danger'; }
+                if (t < 15) {
+                    s.textContent = '🥶 Froide';
+                    s.className = 'status-pill pill-warning';
+                } else if (t <= 28) {
+                    s.textContent = '✅ Agréable';
+                    s.className = 'status-pill pill-good';
+                } else {
+                    s.textContent = '🔥 Chaude';
+                    s.className = 'status-pill pill-danger';
+                }
             }
 
             // pH
@@ -156,30 +188,45 @@
                 const ph = d.ph;
                 document.getElementById('ph-display').textContent = ph.toFixed(1);
                 document.getElementById('ph-cursor').style.left = ((ph / 14) * 100) + '%';
+                
                 const ps = document.getElementById('ph-status');
-                if      (ph < 6.5)               { ps.textContent = '⚠️ Acide';        ps.className = 'status-pill pill-danger'; }
-                else if (ph >= 7.8 && ph <= 8.3) { ps.textContent = '✅ Normal';       ps.className = 'status-pill pill-good'; }
-                else if (ph > 8.3 && ph <= 9)    { ps.textContent = '⚠️ Basique';     ps.className = 'status-pill pill-warning'; }
-                else if (ph > 9)                  { ps.textContent = '🚨 Très basique'; ps.className = 'status-pill pill-danger'; }
-                else                              { ps.textContent = '✅ Acceptable';   ps.className = 'status-pill pill-good'; }
+                if (ph < 6.5) {
+                    ps.textContent = '⚠️ Acide';
+                    ps.className = 'status-pill pill-danger';
+                } else if (ph >= 7.8 && ph <= 8.3) {
+                    ps.textContent = '✅ Normal';
+                    ps.className = 'status-pill pill-good';
+                } else if (ph > 8.3 && ph <= 9) {
+                    ps.textContent = '⚠️ Basique';
+                    ps.className = 'status-pill pill-warning';
+                } else if (ph > 9) {
+                    ps.textContent = '🚨 Très basique';
+                    ps.className = 'status-pill pill-danger';
+                } else {
+                    ps.textContent = '✅ Acceptable';
+                    ps.className = 'status-pill pill-good';
+                }
             }
 
             // GPS
             if (d.latitude && d.longitude) {
                 document.getElementById('gps-lat').textContent = d.latitude.toFixed(5) + '°';
                 document.getElementById('gps-lon').textContent = d.longitude.toFixed(5) + '°';
-                document.getElementById('maps-link').href =
+                document.getElementById('maps-link').href = 
                     `https://www.google.com/maps?q=${d.latitude},${d.longitude}`;
             }
 
-            if (d.timestamp)
-                document.getElementById('water-temp-time').textContent =
+            // Timestamp
+            if (d.timestamp) {
+                document.getElementById('water-temp-time').textContent = 
                     new Date(d.timestamp).toLocaleTimeString('fr-FR');
+            }
         }
 
         function renderAlerts(alerts) {
-            const box = document.getElementById('alerts-box');
+            const box = document.getElementById('alerts-container');
             box.innerHTML = '';
+            
             if (!alerts || alerts.length === 0) {
                 box.innerHTML = '<div class="no-alert">✅ Aucune alerte — Conditions normales</div>';
                 return;
@@ -188,18 +235,18 @@
         }
 
         function addAlert(a) {
-            const box = document.getElementById('alerts-box');
+            const box = document.getElementById('alerts-container');
             const noAlert = box.querySelector('.no-alert');
             if (noAlert) box.innerHTML = '';
 
             const emojis = {
-                temperature_haute:    '🌡️',
-                temp_eau_elevee:      '🌊',
-                mouvement_anormal:    '⚠️',
-                humidite_elevee:      '💧',
-                batterie_faible:      '🔋',
-                conductivite_anormale:'⚡',
-                ph_anormal:           '🧪',
+                temperature_haute: '🌡️',
+                temp_eau_elevee: '🌊',
+                mouvement_anormal: '⚠️',
+                humidite_elevee: '💧',
+                batterie_faible: '🔋',
+                conductivite_anormale: '⚡',
+                ph_anormal: '🧪',
             };
 
             const div = document.createElement('div');
@@ -209,7 +256,7 @@
                 <div class="alert-body">
                     <div class="alert-title">${a.alert_type.replace(/_/g, ' ')}</div>
                     <div class="alert-msg">${a.message}</div>
-                    <div class="alert-time-small">${new Date(a.timestamp).toLocaleString('fr-FR')}</div>
+                    <div class="alert-time">${new Date(a.timestamp).toLocaleString('fr-FR')}</div>
                 </div>
             `;
             box.insertBefore(div, box.firstChild);
