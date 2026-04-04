@@ -3,180 +3,389 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAVANS AQUA-GUARD - Station Balnéaire</title>
+    <title>MAVANS AQUA-GUARD — Vue Expert</title>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+    <!-- NAVIGATION -->
     <div class="nav-bar">
-        <a href="client.html" class="nav-btn">👤 Vue Client</a>
+        <div class="nav-left">
+            <a href="client.html" class="nav-btn">👤 Vue Client</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle" id="theme-toggle" title="Changer le thème">🌙</button>
+        </div>
     </div>
 
     <!-- HEADER -->
     <div class="header">
-        <div class="logo-container">
-            <div class="logo">⚓ MAVANS</div>
-        </div>
+        <div class="logo">⚓ MAVANS</div>
         <div class="subtitle">AQUA-GUARD</div>
-        <div class="system-label">SYSTÈME DE SURVEILLANCE BALNÉAIRE</div>
+        <div class="system-label">Système de surveillance aquacole</div>
         <div class="status-bar">
             <div class="status-badge">
                 <span class="status-dot"></span>
-                <span id="status-text">Connexion en cours...</span>
+                <span id="status-text">Connexion...</span>
             </div>
-            <div class="status-badge gold">
-                <span>📡</span>
-                Station: <strong>Plage Nord 01</strong>
+            <div class="status-badge gold">📡 Station: Plage Nord 01</div>
+        </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+        <button class="tab-btn" data-tab="calculator">🧮 Calculateur galets</button>
+        <button class="tab-btn" data-tab="settings">⚙️ Paramètres</button>
+    </div>
+
+    <!-- ==================== TAB 1: DASHBOARD ==================== -->
+    <div class="tab-content active" id="tab-dashboard">
+        <div class="dashboard">
+
+            <!-- BATTERIE -->
+            <div class="card">
+                <div class="card-title"><span class="card-icon">🔋</span> Batterie</div>
+                <div class="big-display">
+                    <div class="battery-container">
+                        <div class="battery-visual">
+                            <div class="battery-body">
+                                <div class="battery-level" id="battery-bar"></div>
+                            </div>
+                            <div class="battery-tip"></div>
+                        </div>
+                        <div class="big-value" id="battery-value">--%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TEMPÉRATURE EAU -->
+            <div class="card">
+                <div class="card-title"><span class="card-icon">🌊</span> Température eau</div>
+                <div class="big-display">
+                    <div class="big-label">DS18B20</div>
+                    <div class="big-value" id="water-temp">--°C</div>
+                </div>
+            </div>
+
+            <!-- pH -->
+            <div class="card">
+                <div class="card-title"><span class="card-icon">🧪</span> pH de l'eau</div>
+                <div class="big-display">
+                    <div class="big-label">Sonde PH4502C</div>
+                    <div class="big-value" id="ph">--</div>
+                    <div class="ph-scale-bar">
+                        <div class="ph-cursor" id="ph-cursor"></div>
+                    </div>
+                    <div class="ph-scale-labels">
+                        <span>0</span><span>4</span><span>7</span><span>10</span><span>14</span>
+                    </div>
+                    <div class="ph-status-label" id="ph-status">--</div>
+                </div>
+            </div>
+
+            <!-- CONDUCTIVITÉ -->
+            <div class="card">
+                <div class="card-title"><span class="card-icon">⚡</span> Conductivité</div>
+                <div class="metric">
+                    <span class="metric-label">EC</span>
+                    <span class="metric-value" id="conductivity">-- µS/cm</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">TDS</span>
+                    <span class="metric-value" id="tds">-- ppm</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Qualité</span>
+                    <span class="metric-value" id="water-quality">--</span>
+                </div>
+            </div>
+
+            <!-- HUMIDITÉ -->
+            <div class="card">
+                <div class="card-title"><span class="card-icon">💧</span> Humidité</div>
+                <div class="big-display">
+                    <div class="big-label">AM2302</div>
+                    <div class="big-value" id="humidity">--%</div>
+                </div>
+            </div>
+
+            <!-- TEMPÉRATURE AIR -->
+            <div class="card">
+                <div class="card-title"><span class="card-icon">🌡️</span> Température air</div>
+                <div class="big-display">
+                    <div class="big-label">MPU6050</div>
+                    <div class="big-value" id="temp">--°C</div>
+                </div>
+            </div>
+
+            <!-- ACCÉLÉROMÈTRE -->
+            <div class="card">
+                <div class="card-title"><span class="card-icon">📊</span> Accéléromètre</div>
+                <div class="metric">
+                    <span class="metric-label">Axe X</span>
+                    <span class="metric-value" id="accel-x">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Axe Y</span>
+                    <span class="metric-value" id="accel-y">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Axe Z</span>
+                    <span class="metric-value" id="accel-z">--</span>
+                </div>
+                <div class="last-update">Dernière mesure : <span id="accel-time">--</span></div>
+            </div>
+
+            <!-- GYROSCOPE -->
+            <div class="card">
+                <div class="card-title"><span class="card-icon">🔄</span> Gyroscope</div>
+                <div class="metric">
+                    <span class="metric-label">Rotation X</span>
+                    <span class="metric-value" id="gyro-x">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Rotation Y</span>
+                    <span class="metric-value" id="gyro-y">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Rotation Z</span>
+                    <span class="metric-value" id="gyro-z">--</span>
+                </div>
+            </div>
+
+            <!-- GPS -->
+            <div class="card">
+                <div class="card-title"><span class="card-icon">📍</span> Localisation GPS</div>
+                <div class="gps-grid">
+                    <div class="gps-item">
+                        <div class="gps-label">Latitude</div>
+                        <div class="gps-val" id="gps-lat">--</div>
+                    </div>
+                    <div class="gps-item">
+                        <div class="gps-label">Longitude</div>
+                        <div class="gps-val" id="gps-lon">--</div>
+                    </div>
+                </div>
+                <div class="text-center mt-2">
+                    <a id="maps-link" href="#" target="_blank" class="gps-link">🗺️ Voir sur Maps</a>
+                </div>
+            </div>
+
+            <!-- ALERTES -->
+            <div class="card full-width">
+                <div class="card-title"><span class="card-icon">⚠️</span> Alertes système</div>
+                <div id="alerts-container">
+                    <div class="loading">Chargement des alertes...</div>
+                </div>
+            </div>
+
+            <!-- GRAPHIQUE -->
+            <div class="card full-width">
+                <div class="card-title"><span class="card-icon">📈</span> Historique accéléromètre</div>
+                <div class="chart-container">
+                    <canvas id="chart"></canvas>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==================== TAB 2: CALCULATEUR GALETS ==================== -->
+    <div class="tab-content" id="tab-calculator">
+        <div class="dashboard">
+            <div class="card full-width">
+                <div class="card-title"><span class="card-icon">🧮</span> Calculateur de galets correcteurs</div>
+                <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">
+                    Estimez le nombre de galets à base de coquilles d'huîtres nécessaires pour corriger le pH de votre bourriche.
+                </p>
+
+                <div class="form-row">
+                    <!-- pH actuel (auto ou manuel) -->
+                    <div class="form-group">
+                        <label class="form-label">pH actuel</label>
+                        <input type="number" class="form-input" id="calc-ph" step="0.1" min="0" max="14" placeholder="Ex: 7.2">
+                        <small style="color: var(--text-muted); font-size: 11px;">Valeur capteur : <span id="calc-ph-auto">--</span></small>
+                    </div>
+
+                    <!-- pH cible -->
+                    <div class="form-group">
+                        <label class="form-label">pH cible</label>
+                        <input type="number" class="form-input" id="calc-ph-target" step="0.1" min="0" max="14" value="8.0" placeholder="Ex: 8.0">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <!-- Température -->
+                    <div class="form-group">
+                        <label class="form-label">Température eau (°C)</label>
+                        <input type="number" class="form-input" id="calc-temp" step="0.5" placeholder="Ex: 18">
+                        <small style="color: var(--text-muted); font-size: 11px;">Valeur capteur : <span id="calc-temp-auto">--</span></small>
+                    </div>
+
+                    <!-- Conductivité -->
+                    <div class="form-group">
+                        <label class="form-label">Conductivité (µS/cm)</label>
+                        <input type="number" class="form-input" id="calc-cond" step="100" placeholder="Ex: 45000">
+                        <small style="color: var(--text-muted); font-size: 11px;">Valeur capteur : <span id="calc-cond-auto">--</span></small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Taille de la bourriche</label>
+                    <select class="form-select" id="calc-bourriche">
+                        <option value="2">2 kg (~24 huîtres)</option>
+                        <option value="3">3 kg (~36 huîtres)</option>
+                        <option value="5" selected>5 kg (~50-60 huîtres)</option>
+                        <option value="10">10 kg (~100-120 huîtres)</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary btn-block mt-2" id="btn-calculate">
+                    🧮 Calculer le nombre de galets
+                </button>
+
+                <!-- Résultat -->
+                <div class="result-box" id="calc-result" style="display: none;">
+                    <div class="result-title">Nombre de galets recommandés</div>
+                    <div class="result-value" id="calc-result-value">0</div>
+                    <div class="result-detail" id="calc-result-detail"></div>
+                </div>
+            </div>
+
+            <!-- Explications -->
+            <div class="card">
+                <div class="card-title"><span class="card-icon">📖</span> Comment ça marche ?</div>
+                <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.6;">
+                    Les galets à base de coquilles d'huîtres (CaCO₃) libèrent du calcium dans l'eau et augmentent naturellement le pH.
+                </p>
+                <ul style="color: var(--text-secondary); font-size: 13px; line-height: 1.8; margin-top: 10px; padding-left: 20px;">
+                    <li>Plus le pH est bas, plus vous aurez besoin de galets</li>
+                    <li>L'eau chaude accélère la dissolution</li>
+                    <li>La salinité affecte légèrement l'efficacité</li>
+                </ul>
+            </div>
+
+            <!-- Formule -->
+            <div class="card">
+                <div class="card-title"><span class="card-icon">🔬</span> Formule utilisée</div>
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: var(--radius-md); font-family: monospace; font-size: 13px; color: var(--gold);">
+                    nb_galets = Δ × coeff_vol × coeff_temp × coeff_cond / efficacité
+                </div>
+                <p style="color: var(--text-muted); font-size: 12px; margin-top: 10px;">
+                    Où Δ = pH_cible - pH_actuel
+                </p>
             </div>
         </div>
     </div>
 
-    <!-- DASHBOARD -->
-    <div class="dashboard">
+    <!-- ==================== TAB 3: PARAMÈTRES ==================== -->
+    <div class="tab-content" id="tab-settings">
+        <div class="dashboard">
+            <div class="card full-width">
+                <div class="card-title"><span class="card-icon">⚙️</span> Seuils d'alerte</div>
+                <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">
+                    Configurez les seuils qui déclencheront des alertes automatiques.
+                </p>
 
-        <!-- BATTERIE -->
-        <div class="card">
-            <div class="card-title"><span class="card-icon">🔋</span> Niveau de batterie</div>
-            <div class="big-display">
-                <div class="battery-container">
-                    <div class="battery-body">
-                        <div class="battery-level" id="battery-bar"></div>
-                        <div class="battery-percentage" id="battery-text">--%</div>
+                <div class="settings-grid">
+                    <!-- pH -->
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span class="setting-title">🧪 pH minimum</span>
+                            <span class="setting-badge" id="badge-ph-min">6.5</span>
+                        </div>
+                        <input type="range" class="range-slider" id="threshold-ph-min" min="5" max="8" step="0.1" value="6.5">
+                        <div class="range-value">Alerte si pH &lt; <span id="val-ph-min">6.5</span></div>
                     </div>
-                    <div class="battery-tip"></div>
-                </div>
-                <div class="big-value" id="battery-value">--%</div>
-                <div class="big-label">Autonomie restante</div>
-            </div>
-        </div>
 
-        <!-- TEMPÉRATURE EAU -->
-        <div class="card">
-            <div class="card-title"><span class="card-icon">🌊</span> Température de l'eau</div>
-            <div class="big-display">
-                <div class="big-label">Thermomètre immersible DS18B20</div>
-                <div class="big-value" id="water-temp">--°C</div>
-            </div>
-        </div>
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span class="setting-title">🧪 pH maximum</span>
+                            <span class="setting-badge" id="badge-ph-max">9.0</span>
+                        </div>
+                        <input type="range" class="range-slider" id="threshold-ph-max" min="8" max="11" step="0.1" value="9.0">
+                        <div class="range-value">Alerte si pH &gt; <span id="val-ph-max">9.0</span></div>
+                    </div>
 
-        <!-- pH DE L'EAU -->
-        <div class="card">
-            <div class="card-title"><span class="card-icon">🧪</span> pH de l'eau</div>
-            <div class="big-display">
-                <div class="big-label">Sonde PH4502C</div>
-                <div class="big-value" id="ph">--</div>
-                <div class="ph-scale-bar">
-                    <div class="ph-cursor" id="ph-cursor"></div>
-                </div>
-                <div class="ph-scale-labels">
-                    <span>0</span><span>2</span><span>4</span><span>6</span>
-                    <span>7</span><span>8</span><span>10</span><span>12</span><span>14</span>
-                </div>
-                <div class="ph-status-label" id="ph-status">--</div>
-            </div>
-        </div>
+                    <!-- Température eau -->
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span class="setting-title">🌊 Temp. eau min</span>
+                            <span class="setting-badge" id="badge-temp-min">10°C</span>
+                        </div>
+                        <input type="range" class="range-slider" id="threshold-temp-min" min="0" max="20" step="1" value="10">
+                        <div class="range-value">Alerte si &lt; <span id="val-temp-min">10</span>°C</div>
+                    </div>
 
-        <!-- CONDUCTIVITÉ -->
-        <div class="card">
-            <div class="card-title"><span class="card-icon">⚡</span> Conductivité électrique</div>
-            <div class="metric">
-                <span class="metric-label">Conductivité (EC)</span>
-                <span class="metric-value" id="conductivity">-- µS/cm</span>
-            </div>
-            <div class="metric">
-                <span class="metric-label">TDS (Solides dissous)</span>
-                <span class="metric-value" id="tds">-- ppm</span>
-            </div>
-            <div class="quality-gauge">
-                <div class="gauge-bg">
-                    <div class="gauge-inner">
-                        <div class="gauge-value" id="water-quality">--</div>
-                        <div class="gauge-label">Qualité</div>
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span class="setting-title">🌊 Temp. eau max</span>
+                            <span class="setting-badge" id="badge-temp-max">28°C</span>
+                        </div>
+                        <input type="range" class="range-slider" id="threshold-temp-max" min="20" max="40" step="1" value="28">
+                        <div class="range-value">Alerte si &gt; <span id="val-temp-max">28</span>°C</div>
+                    </div>
+
+                    <!-- Batterie -->
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span class="setting-title">🔋 Batterie faible</span>
+                            <span class="setting-badge" id="badge-battery">20%</span>
+                        </div>
+                        <input type="range" class="range-slider" id="threshold-battery" min="5" max="50" step="5" value="20">
+                        <div class="range-value">Alerte si &lt; <span id="val-battery">20</span>%</div>
+                    </div>
+
+                    <!-- Humidité -->
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span class="setting-title">💧 Humidité max</span>
+                            <span class="setting-badge" id="badge-humidity">85%</span>
+                        </div>
+                        <input type="range" class="range-slider" id="threshold-humidity" min="50" max="100" step="5" value="85">
+                        <div class="range-value">Alerte si &gt; <span id="val-humidity">85</span>%</div>
                     </div>
                 </div>
+
+                <button class="btn btn-primary mt-3" id="btn-save-settings">
+                    💾 Sauvegarder les paramètres
+                </button>
+                <button class="btn btn-secondary mt-3" id="btn-reset-settings" style="margin-left: 10px;">
+                    🔄 Réinitialiser
+                </button>
+            </div>
+
+            <!-- Infos système -->
+            <div class="card">
+                <div class="card-title"><span class="card-icon">ℹ️</span> Informations système</div>
+                <div class="metric">
+                    <span class="metric-label">Version</span>
+                    <span class="metric-value">2.0.0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Station</span>
+                    <span class="metric-value">Plage Nord 01</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Dernière synchro</span>
+                    <span class="metric-value" id="last-sync">--</span>
+                </div>
+            </div>
+
+            <!-- Thème -->
+            <div class="card">
+                <div class="card-title"><span class="card-icon">🎨</span> Apparence</div>
+                <div class="form-group">
+                    <label class="form-label">Thème</label>
+                    <select class="form-select" id="theme-select">
+                        <option value="dark">🌙 Mode sombre</option>
+                        <option value="light">☀️ Mode clair</option>
+                    </select>
+                </div>
             </div>
         </div>
-
-        <!-- HUMIDITÉ -->
-        <div class="card">
-            <div class="card-title"><span class="card-icon">💧</span> Humidité capteur</div>
-            <div class="big-display">
-                <div class="big-label">Capteur AM2302</div>
-                <div class="big-value" id="humidity">--%</div>
-            </div>
-        </div>
-
-        <!-- TEMPÉRATURE AIR -->
-        <div class="card">
-            <div class="card-title"><span class="card-icon">🌡️</span> Température ambiante</div>
-            <div class="big-display">
-                <div class="big-label">Capteur IMU (MPU6050)</div>
-                <div class="big-value" id="temp">--°C</div>
-            </div>
-        </div>
-
-        <!-- ACCÉLÉROMÈTRE -->
-        <div class="card">
-            <div class="card-title"><span class="card-icon">📊</span> Accéléromètre</div>
-            <div class="metric">
-                <span class="metric-label">Axe X</span>
-                <span class="metric-value" id="accel-x">-- m/s²</span>
-            </div>
-            <div class="metric">
-                <span class="metric-label">Axe Y</span>
-                <span class="metric-value" id="accel-y">-- m/s²</span>
-            </div>
-            <div class="metric">
-                <span class="metric-label">Axe Z</span>
-                <span class="metric-value" id="accel-z">-- m/s²</span>
-            </div>
-            <div class="last-update">Dernière mesure : <span id="accel-time">--</span></div>
-        </div>
-
-        <!-- GYROSCOPE -->
-        <div class="card">
-            <div class="card-title"><span class="card-icon">🔄</span> Gyroscope</div>
-            <div class="metric">
-                <span class="metric-label">Rotation X</span>
-                <span class="metric-value" id="gyro-x">-- °/s</span>
-            </div>
-            <div class="metric">
-                <span class="metric-label">Rotation Y</span>
-                <span class="metric-value" id="gyro-y">-- °/s</span>
-            </div>
-            <div class="metric">
-                <span class="metric-label">Rotation Z</span>
-                <span class="metric-value" id="gyro-z">-- °/s</span>
-            </div>
-        </div>
-
-        <!-- LOCALISATION GPS -->
-        <div class="card">
-            <div class="card-title"><span class="card-icon">📍</span> Localisation GPS</div>
-            <div class="gps-block">
-                <div class="gps-sublabel">Position actuelle</div>
-                <div class="gps-coords" id="gps-lat">Latitude: --°</div>
-                <div class="gps-coords" id="gps-lon">Longitude: --°</div>
-            </div>
-        </div>
-
-        <!-- ALERTES -->
-        <div class="card full-width">
-            <div class="card-title"><span class="card-icon">⚠️</span> Alertes système</div>
-            <div id="alerts-container">
-                <div class="loading">Chargement des alertes...</div>
-            </div>
-        </div>
-
-        <!-- GRAPHIQUE -->
-        <div class="card full-width">
-            <div class="card-title"><span class="card-icon">📈</span> Historique accéléromètre (100 dernières mesures)</div>
-            <div class="chart-container">
-                <canvas id="chart"></canvas>
-            </div>
-        </div>
-
     </div>
 
     <script src="app.js"></script>
