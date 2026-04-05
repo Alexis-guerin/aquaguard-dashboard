@@ -6,6 +6,41 @@
     <title>MAVANS AQUA-GUARD — Infos Plage</title>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Status orange pour connexion en cours */
+        .status-badge.connecting {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.4);
+            color: #f59e0b;
+        }
+        .status-badge.connecting .status-dot {
+            background: #f59e0b;
+            animation: pulse-orange 1.5s infinite;
+        }
+        @keyframes pulse-orange {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(245,158,11,0.7); }
+            50% { opacity: 0.6; box-shadow: 0 0 0 8px rgba(245,158,11,0); }
+        }
+        /* Status vert quand connecté */
+        .status-badge.connected {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #10b981;
+        }
+        .status-badge.connected .status-dot {
+            background: #10b981;
+        }
+        /* Status rouge si erreur */
+        .status-badge.error {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #ef4444;
+        }
+        .status-badge.error .status-dot {
+            background: #ef4444;
+            animation: none;
+        }
+    </style>
 </head>
 <body>
 
@@ -25,7 +60,7 @@
         <div class="subtitle">AQUA-GUARD</div>
         <div class="system-label">Informations plage en temps réel</div>
         <div class="status-bar">
-            <div class="status-badge">
+            <div class="status-badge connecting" id="status-badge">
                 <span class="status-dot"></span>
                 <span id="status-txt">Connexion...</span>
             </div>
@@ -93,9 +128,10 @@
     </div>
 
     <script>
-        // ===== CONFIG =====
+        // ===== CONFIG - METS TES VRAIES CLÉS ICI =====
         const SUPABASE_URL = 'https://fhauqbpgrwunmzzeqylj.supabase.co';
-        const SUPABASE_KEY = 'VOTRE_CLE_SUPABASE_ICI';
+        const SUPABASE_KEY = 'sb_publishable_UGdWt_CWd-jPWRj0_vegKA_gAIbNKb_';
+        
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // ===== THÈME =====
@@ -114,8 +150,19 @@
             applyTheme(theme);
         });
 
+        // ===== STATUS =====
+        function setStatus(text, state) {
+            const badge = document.getElementById('status-badge');
+            const txt = document.getElementById('status-txt');
+            
+            badge.classList.remove('connecting', 'connected', 'error');
+            badge.classList.add(state);
+            txt.textContent = text;
+        }
+
         // ===== INIT =====
         document.addEventListener('DOMContentLoaded', () => {
+            setStatus('Connexion...', 'connecting');
             loadData();
             loadAlerts();
             subscribeData();
@@ -124,27 +171,40 @@
 
         // ===== CHARGEMENT =====
         async function loadData() {
-            const { data, error } = await sb
-                .from('sensor_data')
-                .select('water_temperature, ph, latitude, longitude, timestamp')
-                .order('timestamp', { ascending: false })
-                .limit(1);
+            try {
+                const { data, error } = await sb
+                    .from('sensor_data')
+                    .select('water_temperature, ph, latitude, longitude, timestamp')
+                    .order('timestamp', { ascending: false })
+                    .limit(1);
 
-            if (!error && data && data.length > 0) {
-                render(data[0]);
-                document.getElementById('status-txt').textContent = 'Données en direct';
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    render(data[0]);
+                    setStatus('Données en direct', 'connected');
+                } else {
+                    setStatus('Aucune donnée', 'connecting');
+                }
+            } catch (err) {
+                console.error('Erreur:', err);
+                setStatus('Erreur connexion', 'error');
             }
         }
 
         async function loadAlerts() {
-            const { data, error } = await sb
-                .from('alerts')
-                .select('*')
-                .eq('resolved', false)
-                .order('timestamp', { ascending: false })
-                .limit(5);
+            try {
+                const { data, error } = await sb
+                    .from('alerts')
+                    .select('*')
+                    .eq('resolved', false)
+                    .order('timestamp', { ascending: false })
+                    .limit(5);
 
-            if (!error) renderAlerts(data);
+                if (!error) renderAlerts(data);
+            } catch (err) {
+                console.error('Erreur alertes:', err);
+            }
         }
 
         // ===== TEMPS RÉEL =====
@@ -152,15 +212,27 @@
             sb.channel('client_data')
                 .on('postgres_changes',
                     { event: 'INSERT', schema: 'public', table: 'sensor_data' },
-                    ({ new: row }) => render(row))
-                .subscribe();
+                    ({ new: row }) => {
+                        console.log('📡 Nouvelle donnée:', row);
+                        render(row);
+                        setStatus('Données en direct', 'connected');
+                    })
+                .subscribe((status) => {
+                    console.log('Subscription status:', status);
+                    if (status === 'SUBSCRIBED') {
+                        console.log('✅ Realtime connecté');
+                    }
+                });
         }
 
         function subscribeAlerts() {
             sb.channel('client_alerts')
                 .on('postgres_changes',
                     { event: 'INSERT', schema: 'public', table: 'alerts' },
-                    ({ new: row }) => addAlert(row))
+                    ({ new: row }) => {
+                        console.log('🚨 Nouvelle alerte:', row);
+                        addAlert(row);
+                    })
                 .subscribe();
         }
 
@@ -186,7 +258,7 @@
             // pH
             if (d.ph != null) {
                 const ph = d.ph;
-                document.getElementById('ph-display').textContent = ph.toFixed(1);
+                document.getElementById('ph-display').textContent = ph.toFixed(2);
                 document.getElementById('ph-cursor').style.left = ((ph / 14) * 100) + '%';
                 
                 const ps = document.getElementById('ph-status');
@@ -242,11 +314,15 @@
             const emojis = {
                 temperature_haute: '🌡️',
                 temp_eau_elevee: '🌊',
+                temp_eau_basse: '🥶',
                 mouvement_anormal: '⚠️',
                 humidite_elevee: '💧',
                 batterie_faible: '🔋',
                 conductivite_anormale: '⚡',
                 ph_anormal: '🧪',
+                ph_bas: '🧪',
+                ph_haut: '🧪',
+                ph_attention: '🧪'
             };
 
             const div = document.createElement('div');
