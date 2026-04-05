@@ -1,8 +1,9 @@
 // ===== CONFIGURATION =====
 const CONFIG = {
     SUPABASE_URL: 'https://fhauqbpgrwunmzzeqylj.supabase.co',
-    SUPABASE_KEY: 'sb_publishable_UGdWt_CWd-jPWRj0_vegKA_gAIbNKb_', // Remplacez par votre clé
+    SUPABASE_KEY: 'sb_publishable_UGdWt_CWd-jPWRj0_vegKA_gAIbNKb_',
     MAX_CHART_POINTS: 100,
+    STATION_ID: 'plage_nord_01',
     EFFICACITE_GALET: 0.15
 };
 
@@ -14,29 +15,36 @@ const state = {
     theme: localStorage.getItem('theme') || 'dark',
     latestData: null,
     chartData: { x: [], y: [], z: [], timestamps: [] },
-    thresholds: JSON.parse(localStorage.getItem('thresholds')) || {
+    // Seuils par défaut (seront écrasés par Supabase)
+    thresholds: {
         phMin: 6.5,
         phMax: 9.0,
         tempMin: 10,
         tempMax: 28,
         battery: 20,
         humidity: 85
-    }
+    },
+    settingsLoaded: false
 };
 
 // ===== INITIALISATION =====
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 MAVANS AQUA-GUARD v2.0 — Système démarré');
+    console.log('🚀 MAVANS AQUA-GUARD v2.1 — Système démarré');
     
     initTheme();
     initTabs();
-    initThresholdSliders();
     initCalculator();
+    
+    // Charger les seuils depuis Supabase AVANT d'initialiser les sliders
+    loadSettingsFromSupabase().then(() => {
+        initThresholdSliders();
+    });
     
     loadLatestData();
     loadAlerts();
     setupRealtimeSubscription();
     setupAlertsSubscription();
+    setupSettingsSubscription(); // 🆕 Écouter les changements de settings
 });
 
 // ===== THÈME SOMBRE / CLAIR =====
@@ -81,18 +89,169 @@ function initTabs() {
         btn.addEventListener('click', () => {
             const tabId = btn.dataset.tab;
             
-            // Désactiver tous les onglets
             tabBtns.forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             
-            // Activer l'onglet sélectionné
             btn.classList.add('active');
             document.getElementById(`tab-${tabId}`).classList.add('active');
             
-            // Redessiner le graphique si on revient au dashboard
             if (tabId === 'dashboard') drawChart();
         });
     });
+}
+
+// ========================================================================
+// ===== 🆕 CHARGEMENT/SAUVEGARDE SEUILS DEPUIS SUPABASE =====
+// ========================================================================
+
+async function loadSettingsFromSupabase() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('settings')
+            .select('*')
+            .eq('station_id', CONFIG.STATION_ID)
+            .single();
+
+        if (error) {
+            console.warn('⚠️ Erreur chargement settings:', error.message);
+            console.log('📋 Utilisation des valeurs par défaut');
+            return;
+        }
+
+        if (data) {
+            // Mapper les colonnes Supabase vers l'état local
+            state.thresholds = {
+                phMin: data.ph_min,
+                phMax: data.ph_max,
+                tempMin: data.temp_water_min,
+                tempMax: data.temp_water_max,
+                battery: data.battery_min,
+                humidity: data.humidity_max
+            };
+            state.settingsLoaded = true;
+            console.log('✅ Seuils chargés depuis Supabase:', state.thresholds);
+        }
+    } catch (err) {
+        console.error('❌ Erreur settings:', err);
+    }
+}
+
+async function saveSettingsToSupabase() {
+    try {
+        const { error } = await supabaseClient
+            .from('settings')
+            .update({
+                ph_min: state.thresholds.phMin,
+                ph_max: state.thresholds.phMax,
+                temp_water_min: state.thresholds.tempMin,
+                temp_water_max: state.thresholds.tempMax,
+                battery_min: state.thresholds.battery,
+                humidity_max: state.thresholds.humidity
+            })
+            .eq('station_id', CONFIG.STATION_ID);
+
+        if (error) throw error;
+
+        console.log('✅ Seuils sauvegardés dans Supabase');
+        showNotification('✅ Paramètres synchronisés !', 'success');
+        return true;
+    } catch (err) {
+        console.error('❌ Erreur sauvegarde settings:', err);
+        showNotification('❌ Erreur de synchronisation', 'error');
+        return false;
+    }
+}
+
+// Écouter les changements de settings en temps réel
+function setupSettingsSubscription() {
+    supabaseClient
+        .channel('settings_changes')
+        .on('postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'settings', filter: `station_id=eq.${CONFIG.STATION_ID}` },
+            ({ new: row }) => {
+                console.log('🔄 Settings mis à jour:', row);
+                state.thresholds = {
+                    phMin: row.ph_min,
+                    phMax: row.ph_max,
+                    tempMin: row.temp_water_min,
+                    tempMax: row.temp_water_max,
+                    battery: row.battery_min,
+                    humidity: row.humidity_max
+                };
+                // Mettre à jour l'UI
+                refreshThresholdSliders();
+                showNotification('🔄 Seuils mis à jour depuis le serveur', 'info');
+            }
+        )
+        .subscribe();
+}
+
+// Rafraîchir les sliders avec les nouvelles valeurs
+function refreshThresholdSliders() {
+    const mappings = [
+        { id: 'threshold-ph-min', key: 'phMin', suffix: '' },
+        { id: 'threshold-ph-max', key: 'phMax', suffix: '' },
+        { id: 'threshold-temp-min', key: 'tempMin', suffix: '°C' },
+        { id: 'threshold-temp-max', key: 'tempMax', suffix: '°C' },
+        { id: 'threshold-battery', key: 'battery', suffix: '%' },
+        { id: 'threshold-humidity', key: 'humidity', suffix: '%' }
+    ];
+
+    mappings.forEach(({ id, key, suffix }) => {
+        const slider = document.getElementById(id);
+        if (slider) {
+            slider.value = state.thresholds[key];
+            updateSliderDisplay(id, state.thresholds[key], suffix);
+        }
+    });
+}
+
+// Notification toast
+function showNotification(message, type = 'info') {
+    // Créer le toast s'il n'existe pas
+    let toast = document.getElementById('toast-notification');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast-notification';
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 9999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        `;
+        document.body.appendChild(toast);
+    }
+
+    // Couleurs selon le type
+    const colors = {
+        success: { bg: 'rgba(16,185,129,0.95)', color: '#fff' },
+        error: { bg: 'rgba(239,68,68,0.95)', color: '#fff' },
+        info: { bg: 'rgba(74,144,226,0.95)', color: '#fff' }
+    };
+
+    const c = colors[type] || colors.info;
+    toast.style.background = c.bg;
+    toast.style.color = c.color;
+    toast.textContent = message;
+
+    // Afficher
+    setTimeout(() => {
+        toast.style.transform = 'translateY(0)';
+        toast.style.opacity = '1';
+    }, 10);
+
+    // Masquer après 3s
+    setTimeout(() => {
+        toast.style.transform = 'translateY(100px)';
+        toast.style.opacity = '0';
+    }, 3000);
 }
 
 // ===== CHARGEMENT DES DONNÉES =====
@@ -182,7 +341,6 @@ function setupAlertsSubscription() {
 
 // ===== MISE À JOUR AFFICHAGE =====
 function updateDisplay(d) {
-    // Helper pour mettre à jour un élément
     const set = (id, value) => {
         const el = document.getElementById(id);
         if (el) el.textContent = value;
@@ -204,17 +362,23 @@ function updateDisplay(d) {
 
     // pH
     if (d.ph != null) {
-        set('ph', d.ph.toFixed(1));
+        set('ph', d.ph.toFixed(2));
         const cursor = document.getElementById('ph-cursor');
         if (cursor) cursor.style.left = ((d.ph / 14) * 100) + '%';
         
         const status = document.getElementById('ph-status');
         if (status) {
-            if (d.ph < 6.5) status.textContent = '⚠️ Eau acide';
-            else if (d.ph >= 7.8 && d.ph <= 8.3) status.textContent = '✅ Normal (eau de mer)';
-            else if (d.ph > 8.3 && d.ph <= 9) status.textContent = '⚠️ Légèrement basique';
-            else if (d.ph > 9) status.textContent = '🚨 Très basique';
-            else status.textContent = '✅ Acceptable';
+            if (d.ph < state.thresholds.phMin) {
+                status.textContent = '⚠️ Eau acide';
+            } else if (d.ph >= 7.8 && d.ph <= 8.3) {
+                status.textContent = '✅ Normal (eau de mer)';
+            } else if (d.ph > 8.3 && d.ph <= state.thresholds.phMax) {
+                status.textContent = '⚠️ Légèrement basique';
+            } else if (d.ph > state.thresholds.phMax) {
+                status.textContent = '🚨 Très basique';
+            } else {
+                status.textContent = '✅ Acceptable';
+            }
         }
     }
 
@@ -227,7 +391,7 @@ function updateDisplay(d) {
         if (bar) {
             bar.style.height = b + '%';
             bar.classList.remove('low', 'medium');
-            if (b < 20) bar.classList.add('low');
+            if (b < state.thresholds.battery) bar.classList.add('low');
             else if (b < 50) bar.classList.add('medium');
         }
     }
@@ -281,6 +445,9 @@ function addAlert(alert) {
         batterie_faible: '🔋',
         conductivite_anormale: '⚡',
         ph_anormal: '🧪',
+        ph_bas: '🧪',
+        ph_haut: '🧪',
+        ph_attention: '🧪'
     };
 
     const div = document.createElement('div');
@@ -295,7 +462,6 @@ function addAlert(alert) {
     `;
     container.insertBefore(div, container.firstChild);
 
-    // Limiter à 10 alertes
     while (container.children.length > 10) {
         container.removeChild(container.lastChild);
     }
@@ -336,7 +502,7 @@ function drawChart() {
     const zeroY = pad + ch / 2;
 
     // Grille
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.strokeStyle = state.theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(30,58,95,0.1)';
     ctx.lineWidth = 1;
     for (let i = 0; i <= 6; i++) {
         const y = pad + (ch / 6) * i;
@@ -347,7 +513,7 @@ function drawChart() {
     }
 
     // Ligne zéro
-    ctx.strokeStyle = 'rgba(212,175,55,0.3)';
+    ctx.strokeStyle = state.theme === 'dark' ? 'rgba(212,175,55,0.3)' : 'rgba(74,144,226,0.4)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(pad, zeroY);
@@ -400,7 +566,7 @@ function updateCalculatorAutoValues(d) {
         if (el) el.textContent = value;
     };
     
-    if (d.ph != null) setAuto('calc-ph-auto', d.ph.toFixed(1));
+    if (d.ph != null) setAuto('calc-ph-auto', d.ph.toFixed(2));
     if (d.water_temperature != null) setAuto('calc-temp-auto', d.water_temperature.toFixed(1) + '°C');
     if (d.conductivity != null) setAuto('calc-cond-auto', d.conductivity.toFixed(0) + ' µS/cm');
 }
@@ -412,9 +578,8 @@ function calculateGalets() {
     const cond = parseFloat(document.getElementById('calc-cond').value);
     const taille = parseInt(document.getElementById('calc-bourriche').value);
 
-    // Validation
     if (isNaN(phActuel) || isNaN(phCible) || isNaN(temp) || isNaN(cond)) {
-        alert('Veuillez remplir tous les champs');
+        showNotification('Veuillez remplir tous les champs', 'error');
         return;
     }
 
@@ -428,22 +593,20 @@ function calculateGalets() {
         resultBox.style.display = 'block';
         resultBox.className = 'result-box';
         resultValue.textContent = '0';
-        resultDetail.textContent = 'Le pH actuel est déjà égal ou supérieur au pH cible. Aucun galet nécessaire.';
+        resultDetail.textContent = 'Le pH actuel est déjà égal ou supérieur au pH cible.';
         return;
     }
 
-    // Coefficients
     const coeffVolume = { 2: 1.0, 3: 1.5, 5: 2.5, 10: 5.0 }[taille] || 1.0;
     const coeffTemp = 1.0 + (temp - 15) * 0.02;
     const coeffCond = 1.0 - (cond / 100000);
 
-    // Calcul
     const nbGalets = Math.ceil(delta * coeffVolume * coeffTemp * coeffCond / CONFIG.EFFICACITE_GALET);
 
     resultBox.style.display = 'block';
     resultBox.className = 'result-box warning';
     resultValue.textContent = nbGalets;
-    resultDetail.textContent = `Pour corriger le pH de ${phActuel.toFixed(1)} → ${phCible.toFixed(1)} dans une bourriche de ${taille} kg`;
+    resultDetail.textContent = `Pour corriger le pH de ${phActuel.toFixed(1)} → ${phCible.toFixed(1)} (bourriche ${taille} kg)`;
 }
 
 // ===== PARAMÈTRES & SEUILS =====
@@ -471,27 +634,31 @@ function initThresholdSliders() {
         });
     });
 
-    // Bouton sauvegarder
+    // Bouton sauvegarder → Supabase
     const btnSave = document.getElementById('btn-save-settings');
     if (btnSave) {
-        btnSave.addEventListener('click', () => {
-            localStorage.setItem('thresholds', JSON.stringify(state.thresholds));
-            alert('✅ Paramètres sauvegardés !');
+        btnSave.addEventListener('click', async () => {
+            btnSave.disabled = true;
+            btnSave.textContent = '⏳ Synchronisation...';
+            
+            const success = await saveSettingsToSupabase();
+            
+            btnSave.disabled = false;
+            btnSave.innerHTML = '💾 Sauvegarder les paramètres';
         });
     }
 
     // Bouton reset
     const btnReset = document.getElementById('btn-reset-settings');
     if (btnReset) {
-        btnReset.addEventListener('click', () => {
+        btnReset.addEventListener('click', async () => {
             state.thresholds = {
                 phMin: 6.5, phMax: 9.0,
                 tempMin: 10, tempMax: 28,
                 battery: 20, humidity: 85
             };
-            localStorage.setItem('thresholds', JSON.stringify(state.thresholds));
-            initThresholdSliders();
-            alert('🔄 Paramètres réinitialisés');
+            refreshThresholdSliders();
+            await saveSettingsToSupabase();
         });
     }
 }
@@ -512,8 +679,8 @@ function checkThresholds(d) {
     const alerts = [];
 
     if (d.ph != null) {
-        if (d.ph < t.phMin) alerts.push(`pH trop bas: ${d.ph.toFixed(1)}`);
-        if (d.ph > t.phMax) alerts.push(`pH trop élevé: ${d.ph.toFixed(1)}`);
+        if (d.ph < t.phMin) alerts.push(`pH trop bas: ${d.ph.toFixed(2)}`);
+        if (d.ph > t.phMax) alerts.push(`pH trop élevé: ${d.ph.toFixed(2)}`);
     }
 
     if (d.water_temperature != null) {
@@ -529,7 +696,6 @@ function checkThresholds(d) {
         alerts.push(`Humidité élevée: ${d.humidity.toFixed(0)}%`);
     }
 
-    // Log des alertes locales (vous pouvez les envoyer à Supabase)
     if (alerts.length > 0) {
         console.warn('⚠️ Seuils dépassés:', alerts);
     }
